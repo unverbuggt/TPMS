@@ -181,7 +181,7 @@ byte decode_manchester_byte(byte bnh, byte bnl, bool& error) {
 
 float pressures[4] = {0,0,0,0};
 int temperatures[4] = {-273,-273,-273,-273};
-unsigned int alive[4] = {20000,15000,10000,5000};
+unsigned int alive[4] = {60000,55000,50000,45000};
 char codes1[4] = {0,0,0,0};
 char codes2[4] = {0,0,0,0};
 char rcvind[4] = {0,0,0,0};
@@ -196,6 +196,8 @@ unsigned long last_refresh;
 
 void handle_oled() {
   char buffer[40];
+  unsigned int strwidth;
+  float alivebar;
   //I2C and SPI is shard on GPIO14(D6) and GPIO12(D5), so we need to reconfigure
   //each time we want to refresh the display. Configure for I2C usage
   pinMode(OLED_SDA, INPUT_PULLUP);
@@ -226,19 +228,35 @@ void handle_oled() {
   u8g2.setFont(u8g2_font_helvR18_tr);
   if (alive[0] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[0]);
+    strwidth = u8g2.getStrWidth(buffer);
     u8g2.drawStr(0, 37, buffer);
+    alivebar = strwidth;
+    alivebar = alivebar * alive[0] / 60000.0;
+    u8g2.drawLine(0, 38, alivebar, 38);
   }
   if (alive[1] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[1]);
-    u8g2.drawStr(128-u8g2.getStrWidth(buffer), 37, buffer);
+    strwidth = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(128-strwidth, 37, buffer);
+    alivebar = strwidth;
+    alivebar = alivebar * alive[1] / 60000.0;
+    u8g2.drawLine(128-strwidth, 38, 128-strwidth+alivebar, 38);
   }
   if (alive[2] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[2]);
-    u8g2.drawStr(0, 63, buffer);
+    strwidth = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(0, 62, buffer);
+    alivebar = strwidth;
+    alivebar = alivebar * alive[2] / 60000.0;
+    u8g2.drawLine(0, 63, alivebar, 63);
   }
   if (alive[3] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[3]);
-    u8g2.drawStr(128-u8g2.getStrWidth(buffer), 63, buffer);
+    strwidth = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(128-strwidth, 62, buffer);
+    alivebar = strwidth;
+    alivebar = alivebar * alive[3] / 60000.0;
+    u8g2.drawLine(128-strwidth, 63, 128-strwidth+alivebar, 63);
   }
   u8g2.sendBuffer();
   

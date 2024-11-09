@@ -300,7 +300,7 @@ void loop() {
     cycle = time_cur - time_last;
   }
   else { //millis() overflows approximately every 50 days
-    cycle = 0xFFFFFF - time_last + time_cur;
+    cycle = 0xFFFFFFFF - time_last + time_cur;
   }
   time_last = time_cur;
 

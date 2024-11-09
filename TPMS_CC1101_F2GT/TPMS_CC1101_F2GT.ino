@@ -72,11 +72,15 @@ void setup() {
   radio.setRxBandwidth(162.0);
   radio.setBitRate(19.2);
   radio.setEncoding(RADIOLIB_ENCODING_NRZ);
-  
+
+#ifdef USE_OOK_GOD
+  radio.setSyncWord(0x55, 0x56);
+#define CHECKLENGTH 16
+#else
   radio.setSyncWord(0x69, 0x6a); //machester encoded 67
-  //radio.setSyncWord(0x55, 0x56);
-  radio.fixedPacketLengthMode(14);
-  //radio.fixedPacketLengthMode(16);
+#define CHECKLENGTH 14
+#endif
+  radio.fixedPacketLengthMode(CHECKLENGTH);
   radio.setCrcFiltering(false);
 
   // set the function that will be called
@@ -315,11 +319,13 @@ void loop() {
       int state = radio.readData(byteArr, numBytes);
     */
 
-    if (state == RADIOLIB_ERR_NONE && str.length() == 14) { //16
-      //Serial.print(F("."));
+    if (state == RADIOLIB_ERR_NONE && str.length() == CHECKLENGTH) {
+#ifdef USE_OOK_GOD
+      k = 0;
+#else
       k = 1;
       data[0] = 0x67; //Sync Word
-      //k = 0;
+#endif
       error = false;
       for (i=0; i < str.length(); i+=2) {
         data[k] = decode_manchester_byte(str.charAt(i), str.charAt(i+1), error);
@@ -400,8 +406,9 @@ void loop() {
       }
     } else {
       // some other error occurred
+      Serial.print(F("received "));
       Serial.print(str.length());
-      Serial.print(F(" failed, code "));
+      Serial.print(F(" bytes, but failed. code "));
       Serial.println(state);
     }
 

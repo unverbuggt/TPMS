@@ -185,7 +185,7 @@ byte decode_manchester_byte(byte bnh, byte bnl, bool& error) {
 
 #define TIMEOUT 300000 //Timeout in ms
 float pressures[4] = {0,0,0,0};
-int temperatures[4] = {-273,-273,-273,-273};
+float temperatures[4] = {-273,-273,-273,-273};
 unsigned long alive[4] = {0,0,0,0};
 char codes1[4] = {0,0,0,0};
 char codes2[4] = {0,0,0,0};
@@ -288,7 +288,7 @@ void loop() {
 
   unsigned long tpms_id;
   float pressure;
-  int temperature;
+  float temperature;
   char code1;
   char code2;
 
@@ -340,11 +340,11 @@ void loop() {
         }
         if (checksum == data[7]) {
           //https://github.com/merbanan/rtl_433/blob/master/src/devices/tpms_ford.c
-          //ID, pressure and temperature decoding seems to work. Flags seem to be different for F2GT
+          //ID, pressure decoding seems to work. Flags and temperature seem to be different for F2GT
           tpms_id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
           pressure = data[4] * 0.25 * 0.0689476;
           if (data[6] & 0x04) {//decoding still unknown for F2GT
-            temperature = data[5]-56;
+            temperature = data[5] * 0.1;
           } else {
             temperature = -273;
           }
@@ -368,7 +368,7 @@ void loop() {
             Serial.print(pressure);
             Serial.print(F(" bar, "));
             if (temperature != -273) {
-              Serial.print(temperature);
+              Serial.print(temperature,1);
             } else {
               Serial.print(F("?"));
             }

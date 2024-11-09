@@ -5,7 +5,7 @@
 #define ID_RR 0x67f40004
 //use OLED to display the received values
 #define USE_OLED
-
+//#define USE_OOK_GOD
 
 //RadioLib------------------------------------------------------------------------
 #include <RadioLib.h>
@@ -86,9 +86,9 @@ void setup() {
 #ifdef USE_OOK_GOD
   //Design Note DN022   swra215e.pdf
   //The optimum AGC settings change with RX filter bandwidth and data rate, but for OOK/ASK the following has been found to give good results:
-  radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07
-  radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x00); //AGCCTRL1 0x00
-  radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92
+  radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07 default: 0x03
+  radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x00); //AGCCTRL1 0x00         default: 0x40
+  radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92 default: 0x91
 #endif
 
   // start listening for packets
@@ -179,14 +179,13 @@ byte decode_manchester_byte(byte bnh, byte bnl, bool& error) {
   return ret;
 }
 
+#define TIMEOUT 300000 //Timeout in ms
 float pressures[4] = {0,0,0,0};
 int temperatures[4] = {-273,-273,-273,-273};
-unsigned int alive[4] = {60000,55000,50000,45000};
+unsigned long alive[4] = {0,0,0,0};
 char codes1[4] = {0,0,0,0};
 char codes2[4] = {0,0,0,0};
-char rcvind[4] = {0,0,0,0};
-float rssi[4] = {0,0,0,0};
-char lqi[4] = {0,0,0,0};
+
 unsigned long last_tpms_id;
 byte last_checksum;
 
@@ -226,36 +225,36 @@ void handle_oled() {
 
   //draw pressures
   u8g2.setFont(u8g2_font_helvR18_tr);
-  if (alive[0] > 0) {
+  if (pressures[0] != 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[0]);
     strwidth = u8g2.getStrWidth(buffer);
     u8g2.drawStr(0, 37, buffer);
     alivebar = strwidth;
-    alivebar = alivebar * alive[0] / 60000.0;
+    alivebar = alivebar * alive[0] / TIMEOUT;
     u8g2.drawLine(0, 38, alivebar, 38);
   }
-  if (alive[1] > 0) {
+  if (pressures[1] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[1]);
     strwidth = u8g2.getStrWidth(buffer);
     u8g2.drawStr(128-strwidth, 37, buffer);
     alivebar = strwidth;
-    alivebar = alivebar * alive[1] / 60000.0;
+    alivebar = alivebar * alive[1] / TIMEOUT;
     u8g2.drawLine(128-strwidth, 38, 128-strwidth+alivebar, 38);
   }
-  if (alive[2] > 0) {
+  if (pressures[2] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[2]);
     strwidth = u8g2.getStrWidth(buffer);
     u8g2.drawStr(0, 62, buffer);
     alivebar = strwidth;
-    alivebar = alivebar * alive[2] / 60000.0;
+    alivebar = alivebar * alive[2] / TIMEOUT;
     u8g2.drawLine(0, 63, alivebar, 63);
   }
-  if (alive[3] > 0) {
+  if (pressures[3] > 0) {
     snprintf(buffer, sizeof(buffer), "%.2f", pressures[3]);
     strwidth = u8g2.getStrWidth(buffer);
     u8g2.drawStr(128-strwidth, 62, buffer);
     alivebar = strwidth;
-    alivebar = alivebar * alive[3] / 60000.0;
+    alivebar = alivebar * alive[3] / TIMEOUT;
     u8g2.drawLine(128-strwidth, 63, 128-strwidth+alivebar, 63);
   }
   u8g2.sendBuffer();
@@ -338,32 +337,20 @@ void loop() {
           //ID, pressure and temperature decoding seems to work. Flags seem to be different for F2GT
           tpms_id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
           pressure = data[4] * 0.25 * 0.0689476;
-          temperature = -273; //decoding still unknown for F2GT
+          if (data[6] & 0x04) {//decoding still unknown for F2GT
+            temperature = data[5]-56;
+          } else {
+            temperature = -273;
+          }
           code1 = data[5];
           code2 = data[6];
-          if (tpms_id == ID_FL) {
-            i = 0;
-          } else if (tpms_id == ID_FR) {
-            i = 1;
-          } else if (tpms_id == ID_RL) {
-            i = 2;
-          } else if (tpms_id == ID_RR) {
-            i = 3;
-          } else {
-            i = -1;
-          }
-          if (i != -1) {
-            alive[i] = 60000;
-            pressures[i] = pressure;
-            if (temperature != -273) {
-              temperatures[i] = temperature;
-            }            
-            codes1[i] = code1;
-            codes2[i] = code2;
-            rcvind[i] = rcvind[i] + 1;
-            rssi[i] = radio.getRSSI();
-            lqi[i] = radio.getLQI();
-          }
+
+          if (tpms_id == ID_FL) {i = 0;}
+          else if (tpms_id == ID_FR) {i = 1;}
+          else if (tpms_id == ID_RL) {i = 2;}
+          else if (tpms_id == ID_RR) {i = 3;}
+          else {i = -1;}
+
           if (tpms_id != last_tpms_id || checksum != last_checksum) {
             //Serial.println();
             if (i == -1) {
@@ -379,7 +366,7 @@ void loop() {
             } else {
               Serial.print(F("?"));
             }
-              Serial.print(F(" °C, "));
+            Serial.print(F(" °C, "));
             Serial.print(code1,HEX);
             Serial.print(F(", "));
             Serial.print(code2,HEX);
@@ -389,9 +376,23 @@ void loop() {
             Serial.print(F(" dBm, "));
             Serial.print(F("LQI: "));
             Serial.print(radio.getLQI());
+            if (i != -1) {
+              Serial.print(F(", "));
+              Serial.print((TIMEOUT - alive[i]));
+              Serial.print(F(" ms"));
+            }
             Serial.println();
             last_tpms_id = tpms_id;
             last_checksum = checksum;
+          }
+          if (i != -1) {
+            alive[i] = TIMEOUT;
+            pressures[i] = pressure;
+            if (temperature != -273) {
+              temperatures[i] = temperature;
+            }
+            codes1[i] = code1;
+            codes2[i] = code2;
           }
         } else {
           Serial.println(F("Checksum ERROR!"));

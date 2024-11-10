@@ -5,7 +5,10 @@
 #define ID_RR 0x67f40004
 //use OLED to display the received values
 #define USE_OLED
+//#define USE_OOK
 //#define USE_OOK_GOD
+#define SHORT_SYNC
+//#define DEBUG_ERR
 
 //RadioLib------------------------------------------------------------------------
 #include <RadioLib.h>
@@ -65,7 +68,7 @@ void setup() {
     while (true) { delay(10); }
   }
   Serial.print(F("[CC1101] Version ")); Serial.println(radio.getChipVersion(), HEX);
-#ifdef USE_OOK_GOD
+#ifdef USE_OOK
   radio.setOOK(true);
 #endif
   radio.setFrequency(433.92);
@@ -73,7 +76,7 @@ void setup() {
   radio.setBitRate(19.2);
   radio.setEncoding(RADIOLIB_ENCODING_NRZ);
 
-#ifdef USE_OOK_GOD
+#ifdef SHORT_SYNC
   radio.setSyncWord(0x55, 0x56);
 #define CHECKLENGTH 16
 #else
@@ -183,16 +186,12 @@ byte decode_manchester_byte(byte bnh, byte bnl, bool& error) {
   return ret;
 }
 
-#define TIMEOUT 300000 //Timeout in ms
+#define TIMEOUT 120000 //Timeout in ms
 float pressures[4] = {0,0,0,0};
 float temperatures[4] = {-273,-273,-273,-273};
 unsigned long alive[4] = {0,0,0,0};
 char codes1[4] = {0,0,0,0};
 char codes2[4] = {0,0,0,0};
-
-unsigned long last_tpms_id;
-byte last_checksum;
-
 
 #ifdef USE_OLED
 unsigned long last_refresh;
@@ -274,6 +273,11 @@ void onPressed() {
     Serial.println("Button has been pressed!");
 }
 
+unsigned long last_tpms_id;
+byte last_checksum;
+unsigned int err_cnt_manchester;
+unsigned int err_cnt_checksum;
+unsigned int err_cnt_other;
 
 void loop() {
   unsigned long time_cur; //current lifetime in [ms]
@@ -320,7 +324,7 @@ void loop() {
     */
 
     if (state == RADIOLIB_ERR_NONE && str.length() == CHECKLENGTH) {
-#ifdef USE_OOK_GOD
+#ifdef SHORT_SYNC
       k = 0;
 #else
       k = 1;
@@ -332,7 +336,10 @@ void loop() {
         k++;
       }
       if (error) {
+#ifdef DEBUG_ERR
         Serial.println(F("Manchester ERROR!"));
+#endif
+        err_cnt_manchester++;
       } else {
         checksum = 0;
         for (k=0; k < 7; k++) {
@@ -382,6 +389,12 @@ void loop() {
             Serial.print(F(" dBm, "));
             Serial.print(F("LQI: "));
             Serial.print(radio.getLQI());
+            Serial.print(F(", "));
+            Serial.print(err_cnt_manchester);
+            Serial.print(F(", "));
+            Serial.print(err_cnt_checksum);
+            Serial.print(F(", "));
+            Serial.print(err_cnt_other);
             if (i != -1) {
               Serial.print(F(", "));
               Serial.print((TIMEOUT - alive[i]));
@@ -390,6 +403,9 @@ void loop() {
             Serial.println();
             last_tpms_id = tpms_id;
             last_checksum = checksum;
+            err_cnt_manchester = 0;
+            err_cnt_checksum = 0;
+            err_cnt_other = 0;
           }
           if (i != -1) {
             alive[i] = TIMEOUT;
@@ -401,15 +417,21 @@ void loop() {
             codes2[i] = code2;
           }
         } else {
+#ifdef DEBUG_ERR
           Serial.println(F("Checksum ERROR!"));
+#endif
+          err_cnt_checksum++;
         }
       }
     } else {
       // some other error occurred
+#ifdef DEBUG_ERR
       Serial.print(F("received "));
       Serial.print(str.length());
       Serial.print(F(" bytes, but failed. code "));
       Serial.println(state);
+#endif
+      err_cnt_other++;
     }
 
     // put module back to listen mode

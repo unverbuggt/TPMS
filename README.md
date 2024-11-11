@@ -7,9 +7,8 @@ and BLE by andi38 was moved [here](truck_ble_andi38/)
 
 ## Sensor
 
-This currently reads the FoMoCo F2GT type TPMS sensors of my winter tires:
+This currently reads the FoMoCo F2GT type TPMS [sensors](sensors/) of my winter tires and some other sensors from my other Ford car.
 
-![F2GT Sensor](pic/f2gt-sensor.jpg)
 
 ## Prototype
 

@@ -9,7 +9,6 @@ and BLE by andi38 was moved [here](truck_ble_andi38/)
 
 This currently reads the FoMoCo F2GT type TPMS [sensors](sensors/) of my winter tires and some other sensors from my other Ford car.
 
-
 ## Prototype
 
 I'm using the [HW-364](https://github.com/peff74/esp8266_OLED_HW-364A/) ESP8266 Board with a CC1101 Board.
@@ -18,5 +17,6 @@ I'm using the [HW-364](https://github.com/peff74/esp8266_OLED_HW-364A/) ESP8266 
 
 ## Program
 
-In the current state it can only detect sensor transmissions if the sensor ID start with 0x67,
-as the ID is used as sync word.
+Currently it can read and display pressure from both sensor types.
+
+TODO: implement automatic learn mode.

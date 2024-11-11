@@ -7,7 +7,6 @@
 #define USE_OLED
 //#define USE_OOK
 //#define USE_OOK_GOD
-#define SHORT_SYNC
 //#define DEBUG_ERR
 
 //RadioLib------------------------------------------------------------------------
@@ -76,13 +75,8 @@ void setup() {
   radio.setBitRate(19.2);
   radio.setEncoding(RADIOLIB_ENCODING_NRZ);
 
-#ifdef SHORT_SYNC
   radio.setSyncWord(0x55, 0x56);
 #define CHECKLENGTH 16
-#else
-  radio.setSyncWord(0x69, 0x6a); //machester encoded 67
-#define CHECKLENGTH 14
-#endif
   radio.fixedPacketLengthMode(CHECKLENGTH);
   radio.setCrcFiltering(false);
 
@@ -324,12 +318,7 @@ void loop() {
     */
 
     if (state == RADIOLIB_ERR_NONE && str.length() == CHECKLENGTH) {
-#ifdef SHORT_SYNC
       k = 0;
-#else
-      k = 1;
-      data[0] = 0x67; //Sync Word
-#endif
       error = false;
       for (i=0; i < str.length(); i+=2) {
         data[k] = decode_manchester_byte(str.charAt(i), str.charAt(i+1), error);

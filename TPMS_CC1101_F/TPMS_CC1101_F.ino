@@ -5,7 +5,6 @@
 #define ID_RR 0x67f40004
 //use OLED to display the received values
 #define USE_OLED
-//#define USE_OOK
 //#define USE_OOK_GOD
 //#define DEBUG_ERR
 
@@ -44,8 +43,31 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, OLED_RESET, OLED_SCL, OLED_SDA
 EasyButton button(BUTTON_PIN);
 //--------------------------------------------------------------------------------
 
+void setModulation(bool ook) {
+  if (ook) {
+    Serial.println(F("[CC1101] OOK modulation"));
+    radio.setOOK(true);
+#ifdef USE_OOK_GOD
+    //Design Note DN022   swra215e.pdf
+    //The optimum AGC settings change with RX filter bandwidth and data rate, but for OOK/ASK the following has been found to give good results:
+    radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07
+    radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x00); //AGCCTRL1 0x00
+    radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92
+#endif
+  } else {
+    Serial.println(F("[CC1101] FSK modulation"));
+    radio.setOOK(false);
+#ifdef USE_OOK_GOD
+    radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03
+    radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x40); //AGCCTRL1 0x40
+    radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91
+#endif
+  }
+}
+
 //global cycle time
 unsigned long time_last; //last lifetime in ms
+bool modulation = false;
 
 void setup() {
   //init cycle time measurement
@@ -67,9 +89,8 @@ void setup() {
     while (true) { delay(10); }
   }
   Serial.print(F("[CC1101] Version ")); Serial.println(radio.getChipVersion(), HEX);
-#ifdef USE_OOK
-  radio.setOOK(true);
-#endif
+
+  setModulation(modulation); //start with FSK
   radio.setFrequency(433.92);
   radio.setRxBandwidth(162.0);
   radio.setBitRate(19.2);
@@ -83,14 +104,6 @@ void setup() {
   // set the function that will be called
   // when new packet is received
   radio.setPacketReceivedAction(setFlag);
-
-#ifdef USE_OOK_GOD
-  //Design Note DN022   swra215e.pdf
-  //The optimum AGC settings change with RX filter bandwidth and data rate, but for OOK/ASK the following has been found to give good results:
-  radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07 default: 0x03
-  radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x00); //AGCCTRL1 0x00         default: 0x40
-  radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92 default: 0x91
-#endif
 
   // start listening for packets
   Serial.print(F("[CC1101] Starting to listen ... "));
@@ -203,22 +216,24 @@ void handle_oled() {
   u8g2.setFont(u8g2_font_helvR12_tr);
   u8g2.drawStr(0, 12, "unverbuggtRDKS");
 
-  //draw a "car"
-  u8g2.drawFrame(54,20,20,42);
-  u8g2.drawFrame(57,32,14,26);
-  u8g2.drawFrame(57,32,14,4);
+  if (!modulation) {
+    //draw a "car"
+    u8g2.drawFrame(54,20,20,42);
+    u8g2.drawFrame(57,32,14,26);
+    u8g2.drawFrame(57,32,14,4);
 
-  u8g2.drawLine(52, 23, 52, 32);
-  u8g2.drawLine(53, 23, 53, 32);
+    u8g2.drawLine(52, 23, 52, 32);
+    u8g2.drawLine(53, 23, 53, 32);
 
-  u8g2.drawLine(74, 23, 74, 32);
-  u8g2.drawLine(75, 23, 75, 32);
+    u8g2.drawLine(74, 23, 74, 32);
+    u8g2.drawLine(75, 23, 75, 32);
 
-  u8g2.drawLine(52, 50, 52, 59);
-  u8g2.drawLine(53, 50, 53, 59);
+    u8g2.drawLine(52, 50, 52, 59);
+    u8g2.drawLine(53, 50, 53, 59);
 
-  u8g2.drawLine(74, 50, 74, 59);
-  u8g2.drawLine(75, 50, 75, 59);
+    u8g2.drawLine(74, 50, 74, 59);
+    u8g2.drawLine(75, 50, 75, 59);
+  }
 
   //draw pressures
   u8g2.setFont(u8g2_font_helvR18_tr);
@@ -264,7 +279,9 @@ void handle_oled() {
 
 // Callback function to be called when the button is pressed.
 void onPressed() {
-    Serial.println("Button has been pressed!");
+  modulation = !modulation;
+  setModulation(modulation);
+  handle_oled();
 }
 
 unsigned long last_tpms_id;

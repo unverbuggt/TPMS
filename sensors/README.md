@@ -23,8 +23,8 @@ Eight Manchester encoded data bytes `II II II II PP TT FF CC`.
 `00001010`(0x0A) or `10001010`(0x8A): while training with trigger tool.  
 `00000110`(0x06): while car standing (once every few hours).  
 `01000110`(0x46) or `11000110`(0xC6): while driving.  
-Bit7 (0x40) seems to indicate driving, bit3 (0x08) indicates learning while bit2 (0x40) is off and Bit 1 (0x02) is always on.
-Maybe bit8 (0x80) indicates a near empty battery.
+Bit6 (0x40) seems to indicate driving, Bit3 (0x08) indicates learning while Bit2 (0x40) is off and Bit1 (0x02) is always on.
+Maybe Bit8 (0x80) indicates a near empty battery.
 
 `CC`: Sum of byte 0 to 6 = byte 7
 
@@ -48,9 +48,9 @@ Ditto for this sensor type, but different.
 `00000101`(0x05) or `00000110`(0x06): while car standing (once every few hours).  
 `01001011`(0x4B): while driving and transmitting unknown sequence.  
 `01000110`(0x46): while driving and transmitting temperature.  
-Bit7 (0x40) seems to indicate driving, bit4 (0x10) indicates learning.
-Bit2 (0x04) most likely is on while transmitting temperature and bit3(0x80) is on while transmitting sequence.
-Bit0 (0x01) and bit1 (0x02) is unknown.
+Bit7 (0x40) seems to indicate driving, Bit4 (0x10) indicates learning.
+Bit2 (0x04) most likely is on while transmitting temperature and Bit3 (0x08) is on while transmitting sequence.
+Bit0 (0x01) and Bit1 (0x02) is unknown.
 
 `CC`: Sum of byte 0 to 6 = byte 7
 

@@ -407,20 +407,20 @@ void loop() {
               Serial.print(F(" ms"));
             }
             Serial.println();
+            if (i != -1) {
+              alive[i] = TIMEOUT;
+              pressures[i] = pressure;
+              if (temperature != -273) {
+                temperatures[i] = temperature;
+              }
+              codes1[i] = code1;
+              codes2[i] = code2;
+            }
             last_tpms_id = tpms_id;
             last_checksum = checksum;
             err_cnt_manchester = 0;
             err_cnt_checksum = 0;
             err_cnt_other = 0;
-          }
-          if (i != -1) {
-            alive[i] = TIMEOUT;
-            pressures[i] = pressure;
-            if (temperature != -273) {
-              temperatures[i] = temperature;
-            }
-            codes1[i] = code1;
-            codes2[i] = code2;
           }
         } else {
 #ifdef DEBUG_ERR

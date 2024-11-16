@@ -303,7 +303,7 @@ void loop() {
 
   unsigned long tpms_id;
   float pressure;
-  float temperature;
+  int temperature;
   char code1;
   char code2;
 
@@ -357,7 +357,7 @@ void loop() {
           tpms_id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
           pressure = data[4] * 0.25 * 0.0689476;
           if (data[6] & 0x04) {//decoding still unknown for F2GT
-            temperature = data[5];
+            temperature = data[5] - 56;
           } else {
             temperature = -273;
           }
@@ -380,12 +380,12 @@ void loop() {
             Serial.print(F(", "));
             Serial.print(pressure);
             Serial.print(F(" bar, "));
-            //if (temperature != -273) {
-            //  Serial.print(temperature,1);
-            //} else {
-            //  Serial.print(F("?"));
-            //}
-            //Serial.print(F(" °C, "));
+            if (temperature != -273) {
+              Serial.print(temperature);
+            } else {
+              Serial.print(F("?"));
+            }
+            Serial.print(F(" °C, "));
             Serial.print(code1,HEX);
             Serial.print(F(", "));
             Serial.print(code2,HEX);

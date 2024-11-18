@@ -14,14 +14,8 @@
 // CS pin:    15/D8(ESP8266)
 // GDO0 pin:  5/D1(ESP8266)
 // RST pin:   unused
-// GDO2 pin:  3 (optional)
-CC1101 radio = new Module(15, 5, RADIOLIB_NC, 3);  // cs, gdo0, lib, gdo2
-
-#ifdef USE_OOK_GOD
-#define CC1101_AGCCTRL2     0x1B        // AGC control
-#define CC1101_AGCCTRL1     0x1C        // AGC control
-#define CC1101_AGCCTRL0     0x1D        // AGC control
-#endif
+// GDO2 pin:  4/D2(ESP8266)
+CC1101 radio = new Module(15, 5, RADIOLIB_NC, 4);  // cs, gdo0, lib, gdo2
 //--------------------------------------------------------------------------------
 
 
@@ -47,20 +41,20 @@ void setModulation(bool ook) {
   if (ook) {
     Serial.println(F("[CC1101] OOK modulation"));
     radio.setOOK(true);
-#ifdef USE_OOK_GOD
+#ifdef RADIOLIB_GODMODE
     //Design Note DN022   swra215e.pdf
     //The optimum AGC settings change with RX filter bandwidth and data rate, but for OOK/ASK the following has been found to give good results:
-    radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07
-    radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x00); //AGCCTRL1 0x00
-    radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL2, 0x03); //AGCCTRL2 0x03 to 0x07
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL1, 0x00); //AGCCTRL1 0x00
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL0, 0x91); //AGCCTRL0 0x91 or 0x92
 #endif
   } else {
     Serial.println(F("[CC1101] FSK modulation"));
     radio.setOOK(false);
-#ifdef USE_OOK_GOD
-    radio.SPIwriteRegister(CC1101_AGCCTRL2, 0x03); //AGCCTRL2 0x03
-    radio.SPIwriteRegister(CC1101_AGCCTRL1, 0x40); //AGCCTRL1 0x40
-    radio.SPIwriteRegister(CC1101_AGCCTRL0, 0x91); //AGCCTRL0 0x91
+#ifdef RADIOLIB_GODMODE
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL2, 0x03); //AGCCTRL2 0x03
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL1, 0x40); //AGCCTRL1 0x40
+    radio.SPIwriteRegister(RADIOLIB_CC1101_REG_AGCCTRL0, 0x91); //AGCCTRL0 0x91
 #endif
   }
 }
@@ -90,6 +84,9 @@ void setup() {
   }
   Serial.print(F("[CC1101] Version ")); Serial.println(radio.getChipVersion(), HEX);
 
+#ifdef RADIOLIB_GODMODE
+  Serial.print(F("[RadioLib] God mode enabled"));
+#endif
   setModulation(modulation); //start with FSK
   radio.setFrequency(433.92);
   radio.setRxBandwidth(162.0);
@@ -356,7 +353,7 @@ void loop() {
           //ID, pressure decoding seems to work. Flags and temperature seem to be different for F2GT
           tpms_id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
           pressure = data[4] * 0.25 * 0.0689476;
-          if (data[6] & 0x04) {//decoding still unknown for F2GT
+          if ((data[6] & 0x04) || !(data[5] & 0x80)) {
             temperature = data[5] - 56;
           } else {
             temperature = -273;
@@ -451,7 +448,7 @@ void loop() {
 #endif
   for (i=0; i < 4; i++) {
     if (cycle < alive[i]) {
-      alive[i] = alive[i] - cycle;
+      alive[i] -= cycle;
     } else {
       alive[i] = 0;
     }

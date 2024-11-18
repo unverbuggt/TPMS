@@ -85,7 +85,7 @@ void setup() {
   Serial.print(F("[CC1101] Version ")); Serial.println(radio.getChipVersion(), HEX);
 
 #ifdef RADIOLIB_GODMODE
-  Serial.print(F("[RadioLib] God mode enabled"));
+  Serial.println(F("[RadioLib] God mode enabled"));
 #endif
   setModulation(modulation); //start with FSK
   radio.setFrequency(433.92);

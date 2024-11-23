@@ -1,15 +1,17 @@
 # Sensors
 
-## Other (probably EV6T) type
+## General
 
 It seems to be like [tpms_ford.c](https://github.com/merbanan/rtl_433/blob/master/src/devices/tpms_ford.c). 
 
-The total transmission is 160 bits. The transmission is OOK and then FSK modulated while car is standing or when using the 125kHz trigger tool (BC2T-1A203-AB). It changes to only FSK modulation while driving.
+The total transmission is 160 bits. The transmission is OOK and then FSK modulated while car is standing or when using the 125kHz trigger tool (BC2T-1A203-AB). It changes to only FSK modulation while driving. The car however seems to only receive the FSK messages.
 
 Preamble 16 Bits: `0101010101010101` = `0x5555`.  
 Sync Word 16 Bits: `0101010101010110` = `0x5556`.
 
 Eight Manchester encoded data bytes `II II II II PP TT FF CC`.
+
+## Other (probably EV6T) type
 
 `IIIIIIII`: ID, mine started with `4` in the first nibble.
 
@@ -33,8 +35,6 @@ The sequence starts with 0xC0 and increases each transmission.
 After that the telegram with temperature at `TT` is transmitted every minute.
 
 ## F2GT type
-
-Ditto for this sensor type, but different.
 
 `IIIIIIII`: ID, mine started with `6` in the first nibble.
 

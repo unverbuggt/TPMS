@@ -5,7 +5,6 @@
 #define ID_RR 0x67f40004
 //use OLED to display the received values
 #define USE_OLED
-//#define USE_OOK_GOD
 //#define DEBUG_ERR
 
 //RadioLib------------------------------------------------------------------------
@@ -17,7 +16,8 @@
 // GDO2 pin:  4/D2(ESP8266)
 CC1101 radio = new Module(15, 5, RADIOLIB_NC, 4);  // cs, gdo0, lib, gdo2
 //--------------------------------------------------------------------------------
-
+#define TPMS_F2GT 0x6
+#define TPMS_EV6T 0x4
 
 //Display-------------------------------------------------------------------------
 #ifdef USE_OLED
@@ -304,7 +304,7 @@ void loop() {
   char code1;
   char code2;
 
-  button.read();
+  //button.read();
 
   //generate cycle time  
   time_cur = millis();
@@ -353,10 +353,15 @@ void loop() {
           //ID, pressure decoding seems to work. Flags and temperature seem to be different for F2GT
           tpms_id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
           pressure = data[4] * 0.25 * 0.0689476;
-          if ((data[6] & 0x04) || !(data[5] & 0x80)) {
-            temperature = data[5] - 56;
-          } else {
-            temperature = -273;
+          temperature = -273;
+          if ((tpms_id >> 28) == TPMS_F2GT) {
+            if (data[6] & 0x04) {
+              temperature = data[5] - 56;
+            }
+          } else if ((tpms_id >> 28) == TPMS_EV6T) {
+            if (!(data[5] & 0x80)) {
+              temperature = data[5] - 56;
+            }
           }
           code1 = data[5];
           code2 = data[6];

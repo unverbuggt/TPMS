@@ -34,6 +34,8 @@ Sequence counting in `TT` is transmitted every 15-16 seconds for pretty accurate
 The sequence starts with 0xC0 and increases each transmission.  
 After that the telegram with temperature at `TT` is transmitted every minute.
 
+Each message is repeated four times with 100ms distance with identical data.
+
 ## F2GT type
 
 `IIIIIIII`: ID, mine started with `6` in the first nibble.
@@ -57,5 +59,7 @@ Bit0 (0x01) and Bit1 (0x02) is unknown.
 
 Unknown sequence `TT` is transmitted every 17-18 seconds for pretty accurately for 7 minutes while driving.  
 After that the telegram with temperature at `TT` is transmitted every minute.
+
+Each message is repeated four times with 100ms distance with increased sequence counter or repeated while transmitting temperature.
 
 ![F2GT Sensor](../pic/f2gt-sensor.jpg)
